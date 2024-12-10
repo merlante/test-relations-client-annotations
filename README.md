@@ -1,6 +1,8 @@
-# Relations java client Authz annotations PoC
+# Relations API java client Authz annotations PoC
 
 This is a PoC for testing authorization filter annotations `@AuthzPreFilter` and `@AuthzPostFilter` available from relations-client-java on the [hackathon-filter-annotations-poc](https://github.com/project-kessel/relations-client-java/tree/hackathon-filter-annotations-poc|hackathon-filter-annotations-poc) branch.
+
+## Usage
 
 By simply taking a method like
 ```java
@@ -8,7 +10,7 @@ public List<Widget> getWidgets() {
   return widgetRepository.getWidgets();
 }
 ```
-we can add authorization filtering of the results with some small modifications. In the below example, the method now "post" filters the results of `getWidgets()` repository call for widgets that the `user` has access to.
+we can add authorization filtering of the results with some small modifications. In the below example, the method now "post" filters the results of `getWidgets()` repository call for widgets that the `user` has `view` access to.
 ```java
 @AuthzPostFilter(permission = "view")
 public List<Widget> getWidgets(UserPrincipal user) {
@@ -43,6 +45,17 @@ public class Widget extends PanacheEntity {
     }
 }
 ```
+
+## How does it work?
+
+Taking the method, below, as an example,
+```java
+public List<Widget> getWidgets() {
+  return widgetRepository.getWidgets();
+}
+```
+if we want to filter the returned list of widgets, we need to know a few things:
+
 
 ## Running the application in dev mode
 
