@@ -1,6 +1,6 @@
 # Relations API java client Authz annotations PoC
 
-This is a PoC for testing authorization filter annotations `@AuthzPreFilter` and `@AuthzPostFilter` available from relations-client-java on the [hackathon-filter-annotations-poc](https://github.com/project-kessel/relations-client-java/tree/hackathon-filter-annotations-poc) branch.
+This is a PoC for testing authorization filter annotations `@AuthzPreFilter` and `@AuthzPostFilter` available from relations-client-java on the [hackathon-filter-annotations-poc](https://github.com/project-kessel/relations-client-java/compare/main...hackathon-filter-annotations-poc) branch.
 
 ## Usage
 
