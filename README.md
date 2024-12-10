@@ -1,8 +1,48 @@
-# test-relations-client-annotations
+# Relations java client Authz annotations PoC
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+This is a PoC for testing authorization filter annotations `@AuthzPreFilter` and `@AuthzPostFilter` available from relations-client-java on the [hackathon-filter-annotations-poc](https://github.com/project-kessel/relations-client-java/tree/hackathon-filter-annotations-poc|hackathon-filter-annotations-poc) branch.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+By simply taking a method like
+```java
+public List<Widget> getWidgets() {
+  return widgetRepository.getWidgets();
+}
+```
+we can add authorization filtering of the results with some small modifications. In the below example, the method now "post" filters the results of `getWidgets()` repository call for widgets that the `user` has access to.
+```java
+@AuthzPostFilter(permission = "view")
+public List<Widget> getWidgets(UserPrincipal user) {
+  return widgetRepository.getWidgets();
+}
+```
+
+We can also query access first and "pre" filter the any calls to the database, so that only accessible widgets are retrieved.
+```java
+@AuthzPreFilter(permission = "view")
+public List<Widget> getWidgets(UserPrincipal user) {
+  return widgetRepository.getWidgets();
+}
+```
+This option requires the use of the hibernate orm and some additional configuration so that the accessible widget ids can be mapped to the right database column.
+
+For example, a filter must be added. It can be added to the `@Entity` class:
+```java
+@Entity
+@FilterDef(name = AuthzPreFilter.FILTER_NAME,
+        parameters = @ParamDef(name = AuthzPreFilter.PARAM_NAME, type = String.class))
+@Filter(name = AuthzPreFilter.FILTER_NAME, condition = "name IN (:id)")
+public class Widget extends PanacheEntity {
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+```
 
 ## Running the application in dev mode
 
