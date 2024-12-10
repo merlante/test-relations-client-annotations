@@ -48,6 +48,10 @@ public class Widget extends PanacheEntity {
 
 ## How does it work?
 
+Access filtering is handled by an interceptor that is tied to the filter annotation. When placed on a
+suitable method, results are filtered transparently to the user. A CDI container or runtime like Quarkus
+is required.
+
 Taking the method, below, as an example,
 ```java
 public List<Widget> getWidgets() {
@@ -55,7 +59,81 @@ public List<Widget> getWidgets() {
 }
 ```
 if we want to filter the returned list of widgets, we need to know a few things:
+1. How `Widgets` are represented in the authz service queries.
+2. How subjects of authorization queries are represented.
+3. How the relevant authz permission is specified.
 
+Answering these questions gives us the bones of our authz request that occurs behind the scenes.
+It will query access by a) object/object type, b) relevant permission and c) subject of access. To 
+provide this information  we decorate the method as follows:
+```java
+@AuthzPreFilter(permission = "view")
+public List<Widget> getWidgets(UserPrincipal user) {
+  return widgetRepository.getWidgets();
+}
+```
+adding an annotation and an additional parameter of type `Principal`.
+
+`b)` is easy, it's specified right there in the annotation (since the permission relates directly to the 
+method).
+
+`a)` is provided by a converter, which converts the Widget type and Widget objects to their equivalent
+objects in the relations API requests. e.g.
+```java
+@Unremovable
+@ApplicationScoped
+public class WidgetObjectRefConverter implements ObjectRefConverter<Widget> {
+    static final String WIDGET_OBJECT_TYPE = "thing";
+    static final String WIDGET_OBJECT_NAMESPACE = "rbac";
+
+    @Override
+    public ObjectType objectType() {
+        return ObjectType.newBuilder()
+                .setName(WIDGET_OBJECT_TYPE)
+                .setNamespace(WIDGET_OBJECT_NAMESPACE)
+                .build();
+    }
+
+    @Override
+    public ObjectReference convert(Widget source) {
+        return ObjectReference.newBuilder()
+                .setType(objectType())
+                .setId(source.getName())
+                .build();
+    }
+}
+```
+The converter just needs to be defined for the `Widget` type and the interceptor will find and inject
+the bean dynamically when it is needed.
+
+In the case of `c)` the interceptor looks for the first `Principal` implementation in the method parameters
+that it can find a subject converter for. Similar to `a)`, the principal, e.g. `UserPrincipal` needs to 
+be converter to a subject object that the relations API can understand.
+
+### `@AuthzPreFilter`
+
+The `@AuthzPreFilter` requires a small amount of additional config to ensure that accessible resources returned by the 
+relations API can be used as a filter criterion for hibernate orm-managed database queries.
+
+`@FilterDef` and `@Filter` annotations must be defined on the `@Entity`, as above.
+```java
+@Entity
+@FilterDef(name = AuthzPreFilter.FILTER_NAME,
+        parameters = @ParamDef(name = AuthzPreFilter.PARAM_NAME, type = String.class))
+@Filter(name = AuthzPreFilter.FILTER_NAME, condition = "name IN (:id)")
+public class Widget extends PanacheEntity {...}
+```
+The `condition` here is important, since it provides the mapping between the `id` representing 
+accessible Widget ids in the relations API and the `name` representing the attribute, and database
+column, in the local persistence.
+
+## Summary of steps to get up and running
+
+1. Put filter annotation on method, specifying the permission.
+2. Add a principal implementation to the parameters.
+3. Define a bean of type `ObjectRefConverter<ReturnType>` for the return type.
+4. Define a bean of type `SubjectRefConverter<PrincipalType>` for the principal type parameter.
+5. OPTIONAL for `@AuthzPreFilter`: add `@FilterDef` and `@Filter` annotations to the `@Entity` type.
 
 ## Running the application in dev mode
 

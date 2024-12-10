@@ -14,14 +14,6 @@ import org.project_kessel.relations.annotations.AuthzPreFilter;
 public class Widget extends PanacheEntity {
     private String name;
 
-    public Widget(String name) {
-        this.name = name;
-    }
-
-    public Widget() {
-
-    }
-
     public void setName(String name) {
         this.name = name;
     }
